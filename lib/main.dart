@@ -7,9 +7,18 @@ import 'modules/splash/splash_view.dart';
 
 var deviceHeight = Get.height;
 var deviceWidth = Get.width;
+String basePath = 'https://newsapi.org/v2/';
 void main() {
   runApp(const MyApp());
-  pSetSettings(primaryColor: Clr.primaryColor, secondaryColor: Clr.secondColor);
+  pSetSettings(
+      primaryColor: Clr.primaryColor,
+      secondaryColor: Clr.secondColor,
+      baseUrlLive: basePath,
+      defaultImage: 'assets/images/defaultImage.jpg',
+      defImageIsAsset: true,
+      isLive: true,
+      defaultLoadingProIsIOS: true
+  );
 }
 
 class MyApp extends StatelessWidget {

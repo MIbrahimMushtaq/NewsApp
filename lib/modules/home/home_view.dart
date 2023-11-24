@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:my_widgets/my_widgets.dart';
+import 'package:my_widgets/utils/dates.dart';
 import 'package:my_widgets/widgets/dividers.dart';
 import 'package:my_widgets/widgets/get_images.dart';
+import 'package:my_widgets/widgets/loading.dart';
 import 'package:my_widgets/widgets/txt.dart';
 import '../../main.dart';
 import '../../s.dart';
@@ -17,52 +19,63 @@ class HomeView extends StatelessWidget {
         init: HomeLogic(),
         builder:(logic){
           return Scaffold(
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0.0,
+              title: Txt(logic.selectedChannel.name,hasBold: true,fontSize: Siz.titleLarge,textColor: Clr.primaryColor,),
+              actions: [
+                PopupMenuButton<ChannelsList>(
+                  initialValue: logic.selectedChannel,
+                  // Callback that sets the selected popup menu item.
+                  onSelected: logic.onSelectChannel,
+                  itemBuilder: (BuildContext context) => <PopupMenuEntry<ChannelsList>>[
+                    ...logic.listChannels.map((e) => PopupMenuItem<ChannelsList>(
+                      value: e,
+                      child: Txt(e.name),
+                    ))
+                  ],
+                ),
+              ],
+              leading: IconButton(icon: Image.asset('assets/images/categoryicon.png',width: 24,height: 24,),onPressed: logic.onCategoryIconTap,),
+              iconTheme: IconThemeData(color: Clr.primaryColor),
+            ),
             body: SafeArea(
               child: Container(
                 padding: EdgeInsets.all(Siz.standPadding),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const MyDivider(),
-                    Txt('Travel Blogs',hasBold: true,fontSize: Siz.titleLarge,textColor: Clr.primaryColor,),
-                    const MyDivider(),
-                    const MyDivider(),
-                    SizedBox(
-                      height: deviceHeight * 0.35,
-                      child: ListView.builder(
-                          itemCount: logic.listBlogs.length,
-                          scrollDirection: Axis.horizontal,
+                child:logic.isLoading? const LoadingPro() : SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: deviceHeight * 0.34,
+                        child: ListView.builder(
+                            itemCount: logic.listTopHeadlines.length,
+                            scrollDirection: Axis.horizontal,
+                            itemBuilder: (ctx,index){
+                              final item = logic.listTopHeadlines[index];
+                          return buildHorizontalTile(bgImage:item.urlToImage ,blogTitle:item.title,tileWidth: deviceWidth * 0.7 ,auther: item.author,onTap:()=>logic.onIconTap(item) );
+                        }),
+                  
+                      ),
+                      const MyDivider(),
+                      const MyDivider(),
+                      SizedBox(height: deviceHeight * 0.6,child:  ListView.builder(
+                          itemCount: logic.listTopHeadlines.length,
                           itemBuilder: (ctx,index){
-                            final item = logic.listBlogs[index];
-                        return buildBlogHorizontalTile(bgImage:item.backgroundImage ,blogTitle:item.blogTitle,tileWidth: deviceWidth * 0.7 ,onTap:()=>logic.onIconTap(item) );
-                      }),
-
-                    ),
-                    const MyDivider(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Txt('Most Popular',hasBold: true,),
-                        Txt('View All',hasUnderLine: true,textColor: Clr.primaryColor,),
-                      ],
-                    ),
-                    const MyDivider(),
-                    Expanded(child:  ListView.builder(
-                        itemCount: logic.listBlogs.length,
-                        itemBuilder: (ctx,index){
-                          final item = logic.listBlogs[index];
-                          return buildPopularBlogTile(blogTitle: item.blogTitle,blogImage: item.backgroundImage,onTap: ()=>logic.onBlogTap(item));
-                        }))
-
-
-                  ],
+                            final item = logic.listTopHeadlines[index];
+                            return buildPopularBlogTile(blogTitle: item.title,blogImage: item.urlToImage,date: item.publishedAt,onTap: ()=>logic.onBlogTap(item));
+                          }))
+                  
+                  
+                    ],
+                  ),
                 ),
               ),
             )
           );
         } );
   }
-  buildBlogHorizontalTile({String? bgImage,String? blogTitle,required double tileWidth,double? textSize,Function()? onTap}){
+  buildHorizontalTile({String? bgImage,String? blogTitle,required double tileWidth,double? textSize,String? auther,Function()? onTap}){
     return Stack(
       children: [
         Container(
@@ -89,7 +102,18 @@ class HomeView extends StatelessWidget {
                   color: Colors.black.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(Siz.standMargin)
               ),
-              child: Txt(blogTitle,hasBold: true,fontSize: textSize??20,maxLine: 3,textColor: Colors.white,overflow: TextOverflow.ellipsis,),
+              child: Column(
+                children: [
+                  Txt(blogTitle,hasBold: true,fontSize: textSize??18,maxLine: 5,textColor: Colors.white,overflow: TextOverflow.ellipsis,),
+                  const MyDivider(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Expanded(child: Txt(auther,textColor: Clr.primaryColor,maxLine: 1, hasBold: true,checkOverFlow: true,overflow: TextOverflow.ellipsis,textAlign: TextAlign.end,))
+                    ],
+                  )
+                ],
+              ),
 
             )),
         Positioned(
@@ -105,11 +129,11 @@ class HomeView extends StatelessWidget {
       ],
     );
   }
-  buildPopularBlogTile({String? blogImage, String? blogTitle,Function()? onTap}){
+  static buildPopularBlogTile({String? blogImage, String? blogTitle,String? newsCompany,DateTime? date ,Function()? onTap}){
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: deviceHeight * 0.13,
+        height: deviceHeight * 0.14,
         width: double.infinity,
         margin: const EdgeInsets.symmetric(vertical: 6),
         padding: EdgeInsets.all(Siz.standPadding - 5),
@@ -121,7 +145,18 @@ class HomeView extends StatelessWidget {
           children: [
             GetImage(isAssets: false,imagePath: blogImage,width: deviceWidth*0.23,),
             const MyVerticalDivider(),
-            Expanded(child: Txt(blogTitle,maxLine: 3,))
+            Expanded(child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Txt(blogTitle,maxLine: 3,),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Txt(Dates.pGetDateTimeCustomFormat(date??DateTime.now(), 'yyyy-MMM-dd'),textColor: Clr.primaryColor,),
+                  ],
+                )
+              ],
+            ))
 
           ],
         ),
